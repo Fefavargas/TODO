@@ -1,1 +1,55 @@
 
+1 - Install Django
+        pip install django
+
+2 - Project Setup
+        django-admin startproject todo_project
+        cd todo_project
+        python manage.py startapp todo
+
+3 - change the file todo_project/settings.py to add one more app
+        INSTALLED_APPS = [
+                          ...
+                          'todo',
+                      ]
+
+4 - create the model in the file todo/models.py:
+          from django.db import models
+          
+          class Task(models.Model):
+              title = models.CharField(max_length=200)
+              completed = models.BooleanField(default=False)
+          
+              def __str__(self):
+                  return self.title
+
+5 - run migrations
+          python manage.py makemigrations
+          python manage.py migrate
+
+6 -  create the view in todo/views.py, add html pages
+
+7 - add URL configuration in todo/urls.py
+          from django.urls import path
+          from . import views
+          
+          urlpatterns = [
+              path("", views.home, name="home"),
+              path("create/", views.create_task, name="create"),
+              path("update/<int:pk>/", views.update_task, name="update"),
+              path("delete/<int:pk>/", views.delete_task, name="delete"),
+              path("toggle/<int:pk>/", views.toggle_complete, name="toggle"),
+          ]
+
+e no todo_project/urls.py
+            from django.contrib import admin
+            from django.urls import path, include
+            
+            urlpatterns = [
+                path('admin/', admin.site.urls),
+                path('', include('todo.urls')),
+            ]
+
+8 - run app
+            python manage.py runserver - terminal
+            http://127.0.0.1:8000/ - browser
