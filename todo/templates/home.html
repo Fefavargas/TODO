@@ -34,7 +34,7 @@
     {% for task in tasks %}
     <tr data-id="{{ task.id }}" data-title="{{ task.title|escape }}" data-due="{% if task.due_date %}{{ task.due_date }}{% else %}{% endif %}" data-resolved="{{ task.resolved|yesno:'true,false' }}">
             <td class="center toggle-cell" title="Click to toggle resolved">
-                {% if task.completed %}
+                {% if task.resolved %}
                     <span class="status-circle checked" aria-hidden="true">✓</span>
                 {% else %}
                     <span class="status-circle" aria-hidden="true"></span>
