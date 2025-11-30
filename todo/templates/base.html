@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}TODO List{% endblock %}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style>
+        :root{
+            /* darker royal blue */
+            --royal:#27408B;
+            --muted:#f6f9ff;
+            --panel-bg: rgba(255,255,255,0.95);
+        }
+        html,body{height:100%}
+        body { font-family: system-ui, -apple-system, Arial, sans-serif; padding: 28px; margin:0; color:var(--royal);
+            /* layered background: subtle gradient + top SVG wave */
+            background-color: #f3f7ff;
+            background-image:
+                radial-gradient(closest-corner at 10% 10%, rgba(65,105,225,0.06), transparent 20%),
+                linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.6));
+            background-attachment: fixed;
+        }
+    /* decorative translucent wave at the top (static) */
+    .wave-top{ position:fixed; left:0; right:0; top:0; height:180px; pointer-events:none; background-repeat:no-repeat; background-position:top center; background-size:cover; opacity:0.95;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%2327408B' stop-opacity='0.09'/><stop offset='1' stop-color='%2327408B' stop-opacity='0.03'/></linearGradient></defs><path fill='url(%23g)' d='M0,96L48,106.7C96,117,192,139,288,154.7C384,171,480,181,576,186.7C672,192,768,192,864,170.7C960,149,1056,107,1152,106.7C1248,107,1344,149,1392,170.7L1440,192L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z'></path></svg>"); }
+    .hero-gradient{ position:fixed; left:0; right:0; top:0; height:220px; pointer-events:none; background: linear-gradient(180deg, rgba(39,64,139,0.08), rgba(39,64,139,0.02)); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 40px auto; background: rgba(255,255,255,0.92); border-radius:8px; overflow:hidden; box-shadow: 0 8px 30px rgba(16,24,40,0.08); }
+    th, td { border-bottom:1px solid rgba(16,24,40,0.04); padding: 12px 14px; }
+    /* light vertical dividers between columns */
+    td:not(:first-child), th:not(:first-child) { border-left:1px solid rgba(16,24,40,0.04); }
+        th { background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(245,247,255,0.6)); text-align: left; color:var(--royal); font-weight:600 }
+    .small-button { font-size:0.9em; padding:6px 10px; margin-left:6px; border-radius:6px; border:1px solid rgba(39,64,139,0.14); background:transparent; color:var(--royal) }
+    /* primary and outline button styles to keep CTA consistent */
+    .btn-primary { background:var(--royal); color:#fff; border:none; padding:8px 12px; border-radius:6px; }
+    .btn-outline { background:#fff; color:var(--royal); border:1px solid rgba(39,64,139,0.16); padding:8px 12px; border-radius:6px; }
+    /* danger (red) button used for delete actions; matches modal and edit-panel size */
+    .btn-danger { background:#b90f0f; color:#fff; border:none; padding:8px 12px; border-radius:6px; font-size:0.95em; line-height:1.2; }
+    .center { text-align:center }
+    .toggle-cell { cursor: pointer; }
+    .toggle-cell:hover { background: rgba(65,105,225,0.04); }
+    /* status circle used in resolved column: smaller to match radio inside TASK column */
+    .status-circle { display:inline-block; width:16px; height:16px; vertical-align:middle; border:2px solid rgba(39,64,139,0.14); border-radius:50%; font-size:12px; line-height:12px; text-align:center; color:var(--royal); background:transparent }
+    /* use the site's royal blue for resolved state so it matches the theme */
+    .status-circle.checked { background:var(--royal); border-color:var(--royal); color:#fff; }
+    /* hide the visible radio circle inside TASK column but keep the input functional */
+    input[name="selected_task"] { width:0; height:0; opacity:0; margin:0; padding:0; }
+    .sortable { cursor: pointer; user-select:none }
+    .sort-indicator { font-size:0.8em; margin-left:6px; color:var(--royal) }
+    /* backdrop for modal edit */
+    #backdrop{ display:none; position:fixed; inset:0; background: rgba(10,12,20,0.35); z-index:900 }
+    /* edit panel */
+    #edit-panel{ border-radius:10px }
+    /* delete confirm modal (same pattern as edit panel) */
+    #delete-modal{ display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:360px; border-radius:10px; z-index:1001 }
+    @media (max-width:720px){ table{margin:20px 12px} #edit-panel{ position:fixed; left:6px; right:6px; transform:none; top:20px } }
+    </style>
+</head>
+<body>
+<div class="wave-top"></div>
+<div class="hero-gradient"></div>
+<h2>My TODO List</h2>
+
+{% block content %}{% endblock %}
+
+{% block scripts %}
+<script>
+// Show edit panel when a radio is selected and populate the form
+document.addEventListener('DOMContentLoaded', function(){
+    const radios = document.querySelectorAll('input[name="selected_task"]');
+    const panel = document.getElementById('edit-panel');
+    const form = document.getElementById('edit-form');
+    const titleInput = document.getElementById('edit-title');
+    const dueInput = document.getElementById('edit-due');
+    const completedInput = document.getElementById('edit-completed');
+    const cancelBtn = document.getElementById('edit-cancel');
+
+    radios.forEach(r => r.addEventListener('change', function(e){
+    if(!this.checked) return;
+        const id = this.value;
+        const title = this.dataset.title || '';
+        const due = this.dataset.due || '';
+        const completed = this.dataset.completed === 'true';
+        form.action = '/update/' + id + '/';
+        titleInput.value = title;
+        dueInput.value = due;
+        completedInput.checked = completed;
+        panel.style.display = 'block';
+        // show backdrop
+        const bd = document.getElementById('backdrop'); if(bd) bd.style.display='block';
+    }));
+
+    if (cancelBtn) cancelBtn.addEventListener('click', function(){
+        // clear selection
+        radios.forEach(r => r.checked = false);
+        panel.style.display = 'none';
+        const bd = document.getElementById('backdrop'); if(bd) bd.style.display='none';
+    });
+    // clicking backdrop closes
+    const backdrop = document.getElementById('backdrop'); if(backdrop) backdrop.addEventListener('click', function(){
+        radios.forEach(r => r.checked = false);
+        panel.style.display = 'none';
+        this.style.display='none';
+    });
+    // Delete button in edit panel: show a styled modal instead of native confirm
+    const deleteBtn = document.getElementById('delete-button');
+    const deleteModal = document.getElementById('delete-modal');
+    const deleteCancel = document.getElementById('delete-cancel');
+    const deleteConfirm = document.getElementById('delete-confirm');
+    if (deleteBtn) deleteBtn.addEventListener('click', function(){
+        // show modal
+        deleteModal.style.display = 'block';
+        const bd = document.getElementById('backdrop'); if(bd) bd.style.display='block';
+    });
+    if (deleteCancel) deleteCancel.addEventListener('click', function(){
+        deleteModal.style.display = 'none';
+        const bd = document.getElementById('backdrop'); if(bd) bd.style.display='none';
+    });
+    if (deleteConfirm) deleteConfirm.addEventListener('click', function(){
+        // derive id from form.action (expected /update/<id>/)
+        const action = form.action || '';
+        const m = action.match(/\/update\/(\d+)\/?$/);
+        const id = m ? m[1] : null;
+        if (!id) { alert('Could not determine task id to delete'); return; }
+        const csrftoken = getCookie('csrftoken');
+        fetch('/delete/' + id + '/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-CSRFToken': csrftoken, 'Accept': 'application/json' }
+        }).then(res => {
+            if (!res.ok) throw new Error('Network response was not ok');
+            // reload to refresh list
+            window.location.reload();
+        }).catch(err => {
+            console.error('Delete failed', err);
+            alert('Could not delete the task. Try again.');
+        });
+    });
+});
+
+// Toggle resolved by clicking the resolved cell. Sends POST to /toggle/<id>/
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+document.addEventListener('click', function(e){
+    const td = e.target.closest('td.toggle-cell');
+    if (!td) return;
+    const tr = td.closest('tr');
+    if (!tr) return;
+    const id = tr.dataset.id;
+    if (!id) return;
+    const csrftoken = getCookie('csrftoken');
+    fetch('/toggle/' + id + '/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Accept': 'application/json'
+        }
+    }).then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+    }).then(data => {
+        // simple approach: reload to reflect change
+        window.location.reload();
+    }).catch(err => {
+        console.error('Toggle failed', err);
+        alert('Could not toggle resolved. Try again.');
+    });
+});
+
+// Column sorting: click headers to sort (toggles asc/desc)
+document.addEventListener('DOMContentLoaded', function(){
+    const table = document.querySelector('table');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const headers = document.querySelectorAll('th.sortable');
+    let current = {col: null, dir: 1};
+
+    function parseDateVal(val) {
+        if (!val) return null;
+        // val expected as YYYY-MM-DD
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function getRowValue(row, col) {
+        if (col === 'title') return (row.dataset.title || '').toLowerCase();
+        if (col === 'due') return parseDateVal(row.dataset.due);
+        if (col === 'resolved') return (row.dataset.completed === 'true') ? 1 : 0;
+        return row.dataset[col];
+    }
+
+    function clearIndicators() {
+        headers.forEach(h => { const s = h.querySelector('.sort-indicator'); if (s) s.textContent = '' });
+    }
+
+    headers.forEach(h => h.addEventListener('click', function(){
+        const col = this.dataset.col;
+        let dir = 1;
+        if (current.col === col) { dir = -current.dir; }
+        current = {col, dir};
+        // gather rows that have data-id
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.dataset && r.dataset.id);
+        rows.sort((a,b) => {
+            const va = getRowValue(a, col);
+            const vb = getRowValue(b, col);
+            // handle nulls for dates
+            if (col === 'due') {
+                if (va === null && vb === null) return 0;
+                if (va === null) return 1 * dir; // empty last on asc
+                if (vb === null) return -1 * dir;
+                return (va - vb) * dir;
+            }
+            if (col === 'title') {
+                if (va < vb) return -1 * dir;
+                if (va > vb) return 1 * dir;
+                return 0;
+            }
+            if (col === 'resolved') {
+                return (va - vb) * dir;
+            }
+            return 0;
+        });
+        // re-append rows
+        rows.forEach(r => tbody.appendChild(r));
+        // update indicators
+        clearIndicators();
+        const ind = this.querySelector('.sort-indicator');
+        if (ind) ind.textContent = dir === 1 ? '▲' : '▼';
+    }));
+});
+</script>
+{% endblock %}
+</body>
+</html>

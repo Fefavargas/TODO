@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Create form on the same page -->
+<form method="post" action="">
+    {% csrf_token %}
+    <div style="display:flex; gap:8px; align-items:end; flex-wrap:wrap">
+        <label for="create-title" style="display:flex; flex-direction:column; font-weight:600; color:var(--royal);">
+            Name task:
+            <input id="create-title" type="text" name="title" placeholder="Task title" required style="margin-top:6px; padding:6px 8px;">
+        </label>
+
+        <label for="create-due" style="display:flex; flex-direction:column; font-weight:600; color:var(--royal);">
+            Due date:
+            <input id="create-due" type="date" name="due_date" style="margin-top:6px; padding:6px 8px;">
+        </label>
+
+        <div style="display:flex; align-items:center">
+            <button type="submit" class="btn-primary">Add</button>
+        </div>
+    </div>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th class="center sortable" data-col="resolved"><span style="color:var(--royal); font-size:1.05em">✓</span> <span class="sort-indicator"></span></th>
+            <th class="sortable" data-col="title">TASK <span class="sort-indicator"></span></th>
+            <th class="sortable" data-col="due">DUE DATE <span class="sort-indicator"></span></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for task in tasks %}
+        <tr data-id="{{ task.id }}" data-title="{{ task.title|escape }}" data-due="{% if task.due_date %}{{ task.due_date }}{% else %}{% endif %}" data-completed="{{ task.completed|yesno:'true,false' }}">
+            <td class="center toggle-cell" title="Click to toggle resolved">
+                {% if task.completed %}
+                    <span class="status-circle checked" aria-hidden="true">✓</span>
+                {% else %}
+                    <span class="status-circle" aria-hidden="true"></span>
+                {% endif %}
+            </td>
+            <td>
+                <label style="display:flex; align-items:center; gap:8px;">
+                    <input type="radio" name="selected_task" value="{{ task.id }}" data-title="{{ task.title|escapejs }}" data-due="{% if task.due_date %}{{ task.due_date }}{% endif %}" data-completed="{{ task.completed|yesno:'true,false' }}">
+                    {% if task.completed %}
+                        <strike>{{ task.title }}</strike>
+                    {% else %}
+                        {{ task.title }}
+                    {% endif %}
+                </label>
+            </td>
+            <td>{% if task.due_date %}{{ task.due_date }}{% endif %}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="3">No tasks yet — add one above.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<!-- Edit panel (hidden until a task is selected) -->
+<div id="backdrop"></div>
+<aside id="edit-panel" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:340px; border:1px solid #ddd; padding:12px; background:#fff; box-shadow:0 6px 18px rgba(0,0,0,0.08); z-index:1000;">
+    <h3>Edit task</h3>
+    <form id="edit-form" method="post" action="/update/0/">
+        {% csrf_token %}
+            <div>
+                <label style="font-weight:600; color:var(--royal); display:block; margin-bottom:6px">Name task:</label>
+                <input type="text" name="title" id="edit-title" style="width:100%">
+            </div>
+            <div style="margin-top:8px">
+                <label style="font-weight:600; color:var(--royal); display:block; margin-bottom:6px">Due date:</label>
+                <input type="date" name="due_date" id="edit-due">
+            </div>
+        <div style="margin-top:8px">
+            <label><input type="checkbox" name="completed" id="edit-completed"> Resolved</label>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px; align-items:center">
+            <button type="submit" class="btn-primary">Save</button>
+            <button type="button" id="edit-cancel" class="btn-outline">Cancel</button>
+            <button type="button" id="delete-button" class="btn-danger" style="margin-left:auto;">Delete</button>
+        </div>
+    </form>
+</aside>
+
+<!-- Delete confirmation modal (mirrors edit panel styling) -->
+<aside id="delete-modal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:360px; border:1px solid #ddd; padding:16px; background:var(--panel-bg); box-shadow:0 6px 18px rgba(0,0,0,0.12);">
+    <p style="margin:0 0 12px; font-weight:600; color:#b90f0f">Delete this task? This cannot be undone.</p>
+    <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button id="delete-cancel" class="btn-outline">Cancel</button>
+    <button id="delete-confirm" class="btn-danger">Delete</button>
+    </div>
+</aside>
+
+{% endblock %}
