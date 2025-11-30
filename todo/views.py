@@ -39,8 +39,8 @@ def update_task(request, pk):
                 task.due_date = None
         else:
             task.due_date = None
-        # completed/resolved checkbox: present when checked
-        task.completed = True if request.POST.get("completed") in ["on", "true", "1"] else False
+        # resolved checkbox: present when checked
+        task.resolved = True if request.POST.get("resolved") in ["on", "true", "1"] else False
         task.save()
         return redirect("home")
     # For non-POST, just redirect to home (no separate update page)
@@ -58,8 +58,8 @@ def toggle_complete(request, pk):
     """
     task = get_object_or_404(Task, pk=pk)
     if request.method == "POST":
-        task.completed = not task.completed
+        task.resolved = not task.resolved
         task.save()
-        return JsonResponse({"ok": True, "completed": task.completed})
+        return JsonResponse({"ok": True, "resolved": task.resolved})
     # fallback for non-POST (e.g., browser link) keep redirect behavior
     return redirect("home")

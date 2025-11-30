@@ -93,7 +93,8 @@ document.addEventListener('DOMContentLoaded', function(){
         const id = this.value;
         const title = this.dataset.title || '';
         const due = this.dataset.due || '';
-        const completed = this.dataset.completed === 'true';
+        // dataset.resolved is set on rows/radios
+        const resolved = this.dataset.resolved === 'true';
         form.action = '/update/' + id + '/';
     titleInput.value = title;
     dueInput.value = due;
@@ -201,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function(){
     function getRowValue(row, col) {
         if (col === 'title') return (row.dataset.title || '').toLowerCase();
         if (col === 'due') return parseDateVal(row.dataset.due);
-        if (col === 'resolved') return (row.dataset.completed === 'true') ? 1 : 0;
+        if (col === 'resolved') return (row.dataset.resolved === 'true') ? 1 : 0;
         return row.dataset[col];
     }
 

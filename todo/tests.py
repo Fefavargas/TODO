@@ -37,9 +37,9 @@ class TaskViewTests(TestCase):
 		self.assertEqual(Task.objects.count(), 0)
 
 	def test_update_task_post(self):
-		t = Task.objects.create(title='old', completed=False)
+		t = Task.objects.create(title='old', resolved=False)
 		url = reverse('update', args=[t.pk])
-		data = {'title': 'new title', 'due_date': '2025-11-30', 'completed': 'on'}
+		data = {'title': 'new title', 'due_date': '2025-11-30', 'resolved': 'on'}
 		resp = self.client.post(url, data)
 		# should redirect back to home
 		self.assertEqual(resp.status_code, 302)
@@ -47,7 +47,7 @@ class TaskViewTests(TestCase):
 		t.refresh_from_db()
 		self.assertEqual(t.title, 'new title')
 		# completed checkbox should be processed by the view
-		self.assertTrue(t.completed)
+		self.assertTrue(t.resolved)
 		self.assertEqual(str(t.due_date), '2025-11-30')
 
 	def test_update_nonexistent_returns_404(self):
@@ -56,7 +56,7 @@ class TaskViewTests(TestCase):
 		self.assertEqual(resp.status_code, 404)
 
 	def test_toggle_complete_endpoint(self):
-		t = Task.objects.create(title='flip me', completed=False)
+		t = Task.objects.create(title='flip me', resolved=False)
 		url = reverse('toggle', args=[t.pk])
 		resp = self.client.post(url, {}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
 		self.assertEqual(resp.status_code, 200)
@@ -64,9 +64,9 @@ class TaskViewTests(TestCase):
 		self.assertIn('application/json', resp['Content-Type'])
 		data = json.loads(resp.content)
 		self.assertTrue(data.get('ok'))
-		self.assertTrue(data.get('completed'))
+		self.assertTrue(data.get('resolved'))
 		t.refresh_from_db()
-		self.assertTrue(t.completed)
+		self.assertTrue(t.resolved)
 
 	def test_toggle_nonexistent_returns_404(self):
 		url = reverse('toggle', args=[9999])
