@@ -41,12 +41,12 @@
                 {% endif %}
             </td>
             <td>
-                <label style="display:flex; align-items:center; gap:8px;">
+                <label class="task-label">
                     <input type="radio" name="selected_task" value="{{ task.id }}" data-title="{{ task.title|escapejs }}" data-due="{% if task.due_date %}{{ task.due_date }}{% endif %}" data-completed="{{ task.completed|yesno:'true,false' }}">
                     {% if task.completed %}
-                        <strike>{{ task.title }}</strike>
+                        <span class="task-title"><strike>{{ task.title }}</strike></span>
                     {% else %}
-                        {{ task.title }}
+                        <span class="task-title">{{ task.title }}</span>
                     {% endif %}
                 </label>
             </td>
@@ -72,9 +72,7 @@
                 <label style="font-weight:600; color:var(--royal); display:block; margin-bottom:6px">Due date:</label>
                 <input type="date" name="due_date" id="edit-due">
             </div>
-        <div style="margin-top:8px">
-            <label><input type="checkbox" name="completed" id="edit-completed"> Resolved</label>
-        </div>
+        <!-- Resolved checkbox removed from edit panel: resolved is toggled via the table column -->
         <div style="margin-top:10px; display:flex; gap:8px; align-items:center">
             <button type="submit" class="btn-primary">Save</button>
             <button type="button" id="edit-cancel" class="btn-outline">Cancel</button>

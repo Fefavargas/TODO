@@ -25,7 +25,8 @@
         background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'><defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0' stop-color='%2327408B' stop-opacity='0.09'/><stop offset='1' stop-color='%2327408B' stop-opacity='0.03'/></linearGradient></defs><path fill='url(%23g)' d='M0,96L48,106.7C96,117,192,139,288,154.7C384,171,480,181,576,186.7C672,192,768,192,864,170.7C960,149,1056,107,1152,106.7C1248,107,1344,149,1392,170.7L1440,192L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z'></path></svg>"); }
     .hero-gradient{ position:fixed; left:0; right:0; top:0; height:220px; pointer-events:none; background: linear-gradient(180deg, rgba(39,64,139,0.08), rgba(39,64,139,0.02)); }
 
-    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 40px auto; background: rgba(255,255,255,0.92); border-radius:8px; overflow:hidden; box-shadow: 0 8px 30px rgba(16,24,40,0.08); }
+    /* use fixed table layout so column widths don't change when rows are re-ordered */
+    table { border-collapse: collapse; table-layout: fixed; width: 100%; max-width: 900px; margin: 40px auto; background: rgba(255,255,255,0.92); border-radius:8px; overflow:hidden; box-shadow: 0 8px 30px rgba(16,24,40,0.08); }
     th, td { border-bottom:1px solid rgba(16,24,40,0.04); padding: 12px 14px; }
     /* light vertical dividers between columns */
     td:not(:first-child), th:not(:first-child) { border-left:1px solid rgba(16,24,40,0.04); }
@@ -47,6 +48,19 @@
     input[name="selected_task"] { width:0; height:0; opacity:0; margin:0; padding:0; }
     .sortable { cursor: pointer; user-select:none }
     .sort-indicator { font-size:0.8em; margin-left:6px; color:var(--royal) }
+    /* fixed column widths to keep layout stable while sorting */
+    th[data-col="resolved"] { width: 8%; text-align:center }
+    th[data-col="title"] { width: 62%; }
+    th[data-col="due"] { width: 30%; }
+    /* prevent the header title cell from forcing width changes, but allow body cells to wrap */
+    th[data-col="title"] { overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+    td:nth-child(2) { overflow: visible; white-space: normal }
+    /* label inside the title column: make it a flex container where the title can wrap and expand the row height */
+    .task-label { display:flex; align-items:center; gap:8px }
+    .task-label input { flex: 0 0 auto }
+    .task-title { flex: 1 1 auto; min-width: 0; overflow: visible; white-space: normal; word-break: break-word; display:block }
+
+    /* custom blue validation message for create form (replaces native browser bubble) */
     /* backdrop for modal edit */
     #backdrop{ display:none; position:fixed; inset:0; background: rgba(10,12,20,0.35); z-index:900 }
     /* edit panel */
@@ -72,7 +86,6 @@ document.addEventListener('DOMContentLoaded', function(){
     const form = document.getElementById('edit-form');
     const titleInput = document.getElementById('edit-title');
     const dueInput = document.getElementById('edit-due');
-    const completedInput = document.getElementById('edit-completed');
     const cancelBtn = document.getElementById('edit-cancel');
 
     radios.forEach(r => r.addEventListener('change', function(e){
@@ -82,9 +95,8 @@ document.addEventListener('DOMContentLoaded', function(){
         const due = this.dataset.due || '';
         const completed = this.dataset.completed === 'true';
         form.action = '/update/' + id + '/';
-        titleInput.value = title;
-        dueInput.value = due;
-        completedInput.checked = completed;
+    titleInput.value = title;
+    dueInput.value = due;
         panel.style.display = 'block';
         // show backdrop
         const bd = document.getElementById('backdrop'); if(bd) bd.style.display='block';
@@ -232,6 +244,8 @@ document.addEventListener('DOMContentLoaded', function(){
         if (ind) ind.textContent = dir === 1 ? '▲' : '▼';
     }));
 });
+
+// end of scripts
 </script>
 {% endblock %}
 </body>
